@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Updater</string>
+    <string name="app_normal_update">普通升级</string>
+    <string name="app_force_update">强制升级</string>
+</resources>

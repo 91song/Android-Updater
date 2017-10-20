@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Updater</string>
+
+    <string name="updater_cancel_update">取消更新</string>
+    <string name="updater_now_update">立即更新</string>
+    <string name="updater_is_downloading">正在下载</string>
+    <string name="updater_download_error" formatted="false">下载失败：%s</string>
+</resources>

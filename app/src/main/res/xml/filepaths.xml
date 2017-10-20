@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        cache-path代表的根目录：Context.getCacheDir()
+        files-path代表的根目录：Context.getFilesDir()
+        external-path代表的根目录：Environment.getExternalStorageDirectory()
+     -->
+    <cache-path
+        name="cache_updater"
+        path="." />
+    <external-path
+        name="external_updater"
+        path="." />
+</paths>
