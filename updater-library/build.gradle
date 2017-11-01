@@ -6,7 +6,7 @@ group = 'com.github.victorai60'
 android {
     compileSdkVersion 26
     //noinspection GradleDependency
-    buildToolsVersion "26.0.1"
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         minSdkVersion 15
