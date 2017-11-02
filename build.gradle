@@ -5,7 +5,6 @@ buildscript {
         jcenter()
     }
     dependencies {
-        //noinspection GradleDependency
         classpath 'com.android.tools.build:gradle:3.0.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.4.1'
 
@@ -16,6 +15,7 @@ buildscript {
 
 allprojects {
     repositories {
+        google()
         jcenter()
     }
 }
