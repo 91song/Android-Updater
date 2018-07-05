@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/Android-Updater.iml" filepath="$PROJECT_DIR$/.idea/Android-Updater.iml" />
       <module fileurl="file://$PROJECT_DIR$/Updater.iml" filepath="$PROJECT_DIR$/Updater.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/updater-library/updater-library.iml" filepath="$PROJECT_DIR$/updater-library/updater-library.iml" />

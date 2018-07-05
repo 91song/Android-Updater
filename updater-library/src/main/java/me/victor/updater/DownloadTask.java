@@ -1,10 +1,20 @@
 package me.victor.updater;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.PowerManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.FileProvider;
 import android.widget.Toast;
 
 import java.io.File;
@@ -16,65 +26,128 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class DownloadTask extends AsyncTask<String, Integer, String> {
+    private static final int NOTIFICATION_ID_DOWNLOADING = 0;
+    private static final int NOTIFICATION_ID_DOWNLOADED = 1;
+    private static final String CHANNEL_ID = "1";
+    private static final String CHANNEL_NAME = "updater";
+
+    @SuppressLint("StaticFieldLeak")
     private Context context;
+    private boolean isForceUpdate;
     private String authority;
+    private String filePath;
+    private int smallIcon;
+
     private PowerManager.WakeLock mWakeLock;
     private ProgressDialog mProgressDialog;
+    private NotificationManager mNotificationManager;
 
-    public DownloadTask(Context context, String authority) {
-        this.authority = authority;
+    DownloadTask(Context context, boolean isForceUpdate, String authority, String filePath, int smallIcon) {
         this.context = context;
+        this.isForceUpdate = isForceUpdate;
+        this.authority = authority;
+        this.filePath = filePath;
+        this.smallIcon = smallIcon;
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        PowerManager manager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        mWakeLock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
-        mWakeLock.acquire();
-        mProgressDialog = new ProgressDialog(context);
-        mProgressDialog.setMessage(context.getString(R.string.updater_is_downloading));
-        mProgressDialog.setIndeterminate(true);
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        mProgressDialog.setCancelable(false);
-        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                DownloadTask.this.cancel(true);
+        if (isForceUpdate) {
+            PowerManager manager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
+            mWakeLock.acquire(10 * 60 * 1000L);
+            mProgressDialog = new ProgressDialog(context);
+            mProgressDialog.setMessage(context.getString(R.string.updater_is_downloading));
+            mProgressDialog.setMax(100);
+            mProgressDialog.setIndeterminate(false);
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    DownloadTask.this.cancel(true);
+                }
+            });
+            mProgressDialog.show();
+        } else {
+            mNotificationManager = (NotificationManager) context.getSystemService(Activity.NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_HIGH);
+                mNotificationManager.createNotificationChannel(channel);
             }
-        });
-        mProgressDialog.show();
+        }
     }
 
     @Override
     protected void onProgressUpdate(Integer... progress) {
         super.onProgressUpdate(progress);
-        mProgressDialog.setIndeterminate(false);
-        mProgressDialog.setMax(100);
-        mProgressDialog.setProgress(progress[0]);
+        if (isForceUpdate) {
+            mProgressDialog.setProgress(progress[0]);
+        } else {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context).setProgress(100,
+                    progress[0], false)
+                    .setSmallIcon(smallIcon)
+                    .setContentTitle("正在下载")
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setChannelId(CHANNEL_ID);
+            mNotificationManager.notify(NOTIFICATION_ID_DOWNLOADING, builder.build());
+        }
     }
 
     @Override
     protected void onPostExecute(String result) {
-        mWakeLock.release();
-        mProgressDialog.dismiss();
-        if (result != null) {
-            Toast.makeText(context, context.getString(R.string.updater_download_error, result),
-                    Toast.LENGTH_LONG).show();
+        if (isForceUpdate) {
+            mWakeLock.release();
+            mProgressDialog.dismiss();
+            if (result == null) {
+                AppUtils.installApk(context, authority, filePath);
+            } else {
+                Toast.makeText(context, context.getString(R.string.updater_download_error, result),
+                        Toast.LENGTH_LONG).show();
+            }
+            AppUtils.exitApp();
         } else {
-            String filePath = context.getCacheDir().getAbsolutePath() + File.separator + "updater.apk";
-            AppUtils.installApk(context, authority, filePath);
+            mNotificationManager.cancel(NOTIFICATION_ID_DOWNLOADING);
+            if (result == null) {
+                Intent intent = new Intent();
+                intent.setAction("android.intent.action.VIEW");
+                intent.addCategory("android.intent.category.DEFAULT");
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    Uri uri = FileProvider.getUriForFile(context, authority, new File(filePath));
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                } else {
+                    intent.setDataAndType(Uri.fromFile(new File(filePath)),
+                            "application/vnd.android.package-archive");
+                }
+                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT);
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+                        .setSmallIcon(smallIcon)
+                        .setContentTitle("下载完成")
+                        .setContentText("点击安装")
+                        .setAutoCancel(true)
+                        .setChannelId(CHANNEL_ID)
+                        .setContentIntent(pendingIntent);
+                mNotificationManager.notify(NOTIFICATION_ID_DOWNLOADED, builder.build());
+            } else {
+                Toast.makeText(context, context.getString(R.string.updater_download_error, result),
+                        Toast.LENGTH_LONG).show();
+            }
         }
-        AppUtils.exitApp();
     }
 
     @Override
-    protected String doInBackground(String... urls) {
+    protected String doInBackground(String... params) {
         InputStream input = null;
         OutputStream output = null;
         HttpURLConnection connection = null;
         try {
-            URL url = new URL(urls[0]);
+            URL url = new URL(params[0]);
             connection = (HttpURLConnection) url.openConnection();
             connection.connect();
             if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
@@ -83,8 +156,7 @@ public class DownloadTask extends AsyncTask<String, Integer, String> {
             }
             int fileLength = connection.getContentLength();
             input = connection.getInputStream();
-            String filePath = context.getCacheDir().getAbsolutePath() + File.separator + "updater.apk";
-            output = new FileOutputStream(filePath);
+            output = new FileOutputStream(params[1]);
             byte data[] = new byte[4096];
             long total = 0;
             int count;
@@ -99,7 +171,7 @@ public class DownloadTask extends AsyncTask<String, Integer, String> {
                 }
                 output.write(data, 0, count);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             return e.toString();
         } finally {
             try {

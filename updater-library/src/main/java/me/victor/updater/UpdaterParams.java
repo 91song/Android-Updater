@@ -6,6 +6,7 @@ public class UpdaterParams {
     private String updateMsg;
     private String downloadUrl;
     private String authority;
+    private int smallIcon;
 
     public boolean isForceUpdate() {
         return isForceUpdate;
@@ -47,12 +48,21 @@ public class UpdaterParams {
         this.authority = authority;
     }
 
+    public int getSmallIcon() {
+        return smallIcon;
+    }
+
+    public void setSmallIcon(int smallIcon) {
+        this.smallIcon = smallIcon;
+    }
+
     public static class Builder {
         private boolean isForceUpdate;
         private String updateTitle;
         private String updateMsg;
         private String downloadUrl;
         private String authority;
+        private int smallIcon;
 
         public Builder isForceUpdate(boolean isForceUpdate) {
             this.isForceUpdate = isForceUpdate;
@@ -79,6 +89,11 @@ public class UpdaterParams {
             return this;
         }
 
+        public Builder setSmallIcon(int smallIcon) {
+            this.smallIcon = smallIcon;
+            return this;
+        }
+
         public UpdaterParams build() {
             UpdaterParams params = new UpdaterParams();
             params.isForceUpdate = isForceUpdate;
@@ -86,6 +101,7 @@ public class UpdaterParams {
             params.updateMsg = updateMsg;
             params.downloadUrl = downloadUrl;
             params.authority = authority;
+            params.smallIcon = smallIcon;
             return params;
         }
     }

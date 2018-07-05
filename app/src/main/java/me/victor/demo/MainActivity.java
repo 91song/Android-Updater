@@ -14,7 +14,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
-    protected void onClick(View v) {
+    public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_normal:
                 startUpdate(false);
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         UpdaterParams params = new UpdaterParams.Builder().setUpdateTitle("发现新版本")
                 .isForceUpdate(isForceUpdate)
                 .setUpdateMsg("1、版本不息，优化不止。\n2、版本很牛逼。")
-                .setDownloadUrl("https://cdn.utsoft.cn/pkg/TLX/dev/android/2.0.0.175.apk")
+                .setDownloadUrl("http://imgs.todriver.com/app/yrxcjld2.4.0.apk")
                 .setAuthority("me.victor.demo.fileprovider")
                 .build();
         Updater.getInstance().checkUpdate(this, params);
